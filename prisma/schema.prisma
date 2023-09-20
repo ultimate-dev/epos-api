@@ -1,0 +1,402 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  surname   String
+  email     String   @unique
+  password  String
+  gender    Gender   @default(UNSPECIFIED)
+  role      UserRole @default(USER)
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  restaurantId Int?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  supplierId   Int
+  supplier     Supplier    @relation(fields: [supplierId], references: [id])
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  status    Status   @default(ACTIVE)
+
+  restaurants Restaurant[]
+  users       User[]
+}
+
+model Restaurant {
+  id        Int         @id @default(autoincrement())
+  logo      String     @db.Text
+  banner    String     @db.Text
+  name      String
+  locale    LocaleCodes
+  status    Status      @default(ACTIVE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  supplierId   Int
+  supplier     Supplier      @relation(fields: [supplierId], references: [id])
+  users        User[]
+  categories   Category[]
+  products     Product[]
+  tables       Table[]
+  orders       Order[]
+  payments     Payment[]
+  translations Translation[]
+  expenseTypes ExpenseType[]
+  stocks       Stock[]
+  stockCodes   StockCode[]
+  ingredients  Ingredient[]
+}
+
+model Product {
+  id            Int           @id @default(autoincrement())
+  name          String
+  image         String        @db.Text
+  description   String?       @db.Text
+  originalPrice Float         @default(0)
+  sellingPrice  Float?        @default(0)
+  quantityType  QuantityTypes @default(PIECE)
+  status        Status        @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+
+  restaurantId     Int
+  restourant       Restaurant        @relation(fields: [restaurantId], references: [id])
+  categoryId       Int
+  category         Category          @relation(fields: [categoryId], references: [id])
+  modifierGroups   ModifierGroup[]
+  ingredientStocks IngredientStock[]
+  orderProducts    OrderProduct[]
+  translations     Translation[]
+}
+
+model Table {
+  id        Int      @id @default(autoincrement())
+  tableNum  Int
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  restaurantId Int
+  restourant   Restaurant @relation(fields: [restaurantId], references: [id])
+  categoryId   Int
+  category     Category   @relation(fields: [categoryId], references: [id])
+  orders       Order[]
+  payments     Payment[]
+}
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  image     String?      @db.Text
+  name      String
+  status    Status       @default(ACTIVE)
+  type      CategoryType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @default(now()) @updatedAt
+
+  restaurantId Int
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id])
+  tables       Table[]
+  products     Product[]
+  translations Translation[]
+}
+
+model ModifierGroup {
+  id        Int      @id @default(autoincrement())
+  name      String
+  required  Boolean  @default(false)
+  multiple  Boolean  @default(false)
+  min       Int?
+  max       Int?
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  productId          Int
+  product            Product           @relation(fields: [productId], references: [id])
+  modifierProducts   ModifierProduct[]
+  modidierSelections ModifierSelect[]
+  translations       Translation[]
+}
+
+model ModifierProduct {
+  id        Int      @id @default(autoincrement())
+  name      String
+  status    Status   @default(ACTIVE)
+  price     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  modifierGroupId    Int
+  modifierGroup      ModifierGroup     @relation(fields: [modifierGroupId], references: [id])
+  modidierSelections ModifierSelect[]
+  translations       Translation[]
+  ingredientStocks   IngredientStock[]
+}
+
+model ModifierSelect {
+  id        Int      @id @default(autoincrement())
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orderProductId Int
+  orderProduct   OrderProduct @relation(fields: [orderProductId], references: [id])
+
+  modifierGroupId   Int
+  modifierGroup     ModifierGroup   @relation(fields: [modifierGroupId], references: [id])
+  modifierProductId Int
+  modifierProduct   ModifierProduct @relation(fields: [modifierProductId], references: [id])
+}
+
+model Stock {
+  id       Int    @id @default(autoincrement())
+  quantity Float  @default(0)
+  status   Status @default(ACTIVE)
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+  ingredientStockId Int?
+  ingredientStock   IngredientStock? @relation(fields: [ingredientStockId], references: [id])
+  ingredientId      Int
+  ingredient        Ingredient       @relation(fields: [ingredientId], references: [id])
+  stockCodeId       Int
+  stockCode         StockCode        @relation(fields: [stockCodeId], references: [id])
+  orderProductId    Int?
+  orderProduct      OrderProduct?    @relation(fields: [orderProductId], references: [id])
+  restaurantId      Int
+  restaurant        Restaurant       @relation(fields: [restaurantId], references: [id])
+}
+
+model StockCode {
+  id              Int               @id @default(autoincrement())
+  name            String
+  status          Status            @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  stokcs          Stock[]
+  ingredientStock IngredientStock[]
+  restaurantId    Int
+  restaurant      Restaurant        @relation(fields: [restaurantId], references: [id])
+}
+
+model Ingredient {
+  id              Int               @id @default(autoincrement())
+  name            String
+  barcode         String?
+  quantityType    QuantityTypes
+  status          Status            @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  translations    Translation[]
+  ingredientStock IngredientStock[]
+  stokcs          Stock[]
+  restaurantId    Int
+  restaurant      Restaurant        @relation(fields: [restaurantId], references: [id])
+}
+
+model IngredientStock {
+  id        Int      @id @default(autoincrement())
+  quantity  Float    @default(0)
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  stockCodeId       Int
+  stockCode         StockCode        @relation(fields: [stockCodeId], references: [id])
+  productId         Int?
+  product           Product?         @relation(fields: [productId], references: [id])
+  modifierProductId Int?
+  modifierProduct   ModifierProduct? @relation(fields: [modifierProductId], references: [id])
+  ingredientId      Int
+  ingredient        Ingredient       @relation(fields: [ingredientId], references: [id])
+  stokcs            Stock[]
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  groupId    String
+  completed  Boolean     @default(false)
+  note       String?
+  status     OrderStatus @default(CREATED)
+  totalPrice Float       @default(0)
+  data       Json?
+
+  orderDate DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orderProducts OrderProduct[]
+  tableId       Int
+  table         Table          @relation(fields: [tableId], references: [id])
+  restaurantId  Int
+  restourant    Restaurant     @relation(fields: [restaurantId], references: [id])
+}
+
+model OrderProduct {
+  id            Int                @id @default(autoincrement())
+  count         Float              @default(0)
+  status        OrderProductStatus @default(WAITING)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @default(now()) @updatedAt
+  orderId       Int
+  order         Order              @relation(fields: [orderId], references: [id])
+  productId     Int
+  product       Product            @relation(fields: [productId], references: [id])
+  paymentItemId Int?
+  paymentItem   PaymentItem?       @relation(fields: [paymentItemId], references: [id])
+
+  modifierSelections ModifierSelect[]
+  stocks             Stock[]
+}
+
+model Translation {
+  id        Int         @id @default(autoincrement())
+  code      LocaleCodes
+  area      String
+  translate String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  restaurantId      Int
+  restourant        Restaurant       @relation(fields: [restaurantId], references: [id])
+  productId         Int?
+  product           Product?         @relation(fields: [productId], references: [id])
+  categoryId        Int?
+  category          Category?        @relation(fields: [categoryId], references: [id])
+  modifierGroupId   Int?
+  modifierGroup     ModifierGroup?   @relation(fields: [modifierGroupId], references: [id])
+  modifierProductId Int?
+  modifierProduct   ModifierProduct? @relation(fields: [modifierProductId], references: [id])
+  ingredientId      Int?
+  ingredient        Ingredient?      @relation(fields: [ingredientId], references: [id])
+}
+
+model Payment {
+  id          String      @id @default(uuid())
+  groupId     String?
+  type        PaymentType
+  totalPrice  Float       @default(0)
+  description String?     @db.Text
+  status      Status      @default(ACTIVE)
+
+  paymentDate DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  tableId       Int?
+  table         Table?        @relation(fields: [tableId], references: [id])
+  expenseTypeId Int?
+  expenseType   ExpenseType?  @relation(fields: [expenseTypeId], references: [id])
+  restaurantId  Int
+  restourant    Restaurant    @relation(fields: [restaurantId], references: [id])
+  paymentItems  PaymentItem[]
+}
+
+model PaymentItem {
+  id        Int     @id @default(autoincrement())
+  status    Status  @default(ACTIVE)
+  price     Float
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orderProducts OrderProduct[]
+}
+
+model ExpenseType {
+  id     Int    @id @default(autoincrement())
+  name   String
+  status Status @default(ACTIVE)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+  restaurantId Int
+  restourant   Restaurant @relation(fields: [restaurantId], references: [id])
+  payments     Payment[]
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNSPECIFIED
+}
+
+enum PaymentType {
+  CASH
+  CREDIT
+  CHANGE
+  DISCOUNT
+  RETURNED
+  CANCELLED
+}
+
+enum OrderStatus {
+  CREATED
+  PREPARING
+  READY
+  PAID
+  ONTHEWAY
+  COMPLATED
+  CANCELLED
+  RETURNED
+}
+
+enum Status {
+  ACTIVE
+  PASSIVE
+  DELETED
+}
+
+enum QuantityTypes {
+  PIECE
+  PORTION
+  KILOGRAM
+  GRAM
+}
+
+enum OrderProductStatus {
+  WAITING
+  APPROVED
+}
+
+enum LocaleCodes {
+  TR
+  EN
+  DE
+  DA
+  FR
+  ES
+  AR
+  FA
+}
+
+enum CategoryType {
+  PRODUCT
+  TABLE
+}
